@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Quiz App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 90%;
+      margin: 30px auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .question {
+      font-size: 18px;
+      margin-bottom: 20px;
+      white-space: pre-line;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option {
+      padding: 12px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .option:hover {
+      background: #e0e0e0;
+    }
+
+    .option.selected {
+      background: #d0ebff;
+      border-left: 4px solid #339af0;
+    }
+
+    .option.correct {
+      background: #d3f9d8;
+      border-left: 4px solid #51cf66;
+    }
+
+    .option.wrong {
+      background: #ffe3e3;
+      border-left: 4px solid #ff6b6b;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #339af0;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1c7ed6;
+    }
+
+    #mistakes {
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .question {
+        font-size: 16px;
+      }
+
+      .option {
+        font-size: 14px;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="quizPage">
+  <div class="stats">
+    <div>Answered: <span id="answered">0</span></div>
+    <div>Correct: <span id="correct">0</span></div>
+    <div>Mistakes: <span id="mistakes" onclick="showMistakes()">0</span></div>
+    <div>Total: <span id="total">0</span></div>
+  </div>
+
+  <div class="question" id="questionText"></div>
+  <div class="options" id="optionsContainer"></div>
+
+  <div class="buttons">
+    <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    <button id="copyBtn" onclick="copyQuestion()" style="display:none;">Copy</button>
+    <button id="nextBtn" onclick="nextQuestion()" style="display:none;">Next</button>
+  </div>
+</div>
+
+<div class="container" id="mistakesPage" style="display:none;">
+  <button onclick="goBackToQuiz()">← Back</button>
+  <h2>Mistake Review</h2>
+  <div id="mistakeList"></div>
+</div>
+
+<script>
+  let questions = [];
+  let shuffledQuestions = [];
+  let currentQuestionIndex = 0;
+  let correct = 0, answered = 0, mistakes = 0;
+  let currentSelected = new Set();
+  let repeatList = [];
+  let completedQuestions = new Set();
+  let mistakeQuestions = [];
+
+  function loadQuestion() {
+    document.getElementById("submitBtn").style.display = "inline-block";
+    document.getElementById("copyBtn").style.display = "none";
+    document.getElementById("nextBtn").style.display = "none";
+
+    const q = shuffledQuestions[currentQuestionIndex];
+    document.getElementById("questionText").innerText = q.question;
+    const container = document.getElementById("optionsContainer");
+    container.innerHTML = "";
+    currentSelected = new Set();
+
+    q.options.forEach((option, index) => {
+      const div = document.createElement("div");
+      div.className = "option";
+      div.innerText = option;
+      div.onclick = () => {
+        if (q.answer.length === 1) {
+          currentSelected = new Set([index]);
+          document.querySelectorAll(".option").forEach(opt => opt.classList.remove("selected"));
+          div.classList.add("selected");
+        } else {
+          if (currentSelected.has(index)) {
+            currentSelected.delete(index);
+            div.classList.remove("selected");
+          } else {
+            currentSelected.add(index);
+            div.classList.add("selected");
+          }
+        }
+      };
+      container.appendChild(div);
+    });
+  }
+
+  function submitAnswer() {
+    const questionObj = shuffledQuestions[currentQuestionIndex];
+    const selectedArray = Array.from(currentSelected).sort();
+    const correctArray = questionObj.answer.slice().sort();
+    const optionsDivs = document.querySelectorAll(".option");
+
+    const isCorrect = arraysEqual(selectedArray, correctArray);
+
+    if (isCorrect) {
+      correct++;
+      const key = JSON.stringify(questionObj);
+      if (!completedQuestions.has(key)) {
+        completedQuestions.add(key);
+        answered++;
+      }
+      correctArray.forEach(idx => optionsDivs[idx].classList.add("correct"));
+    } else {
+      mistakes++;
+      mistakeQuestions.push(questionObj);
+      correctArray.forEach(idx => optionsDivs[idx].classList.add("correct"));
+      selectedArray.forEach(idx => {
+        if (!correctArray.includes(idx)) optionsDivs[idx].classList.add("wrong");
+      });
+      repeatList.push(questionObj);
+      repeatList.push(questionObj);
+    }
+
+    optionsDivs.forEach(div => div.onclick = null);
+
+    document.getElementById("answered").innerText = answered;
+    document.getElementById("correct").innerText = correct;
+    document.getElementById("mistakes").innerText = mistakes;
+
+    document.getElementById("submitBtn").style.display = "none";
+    document.getElementById("copyBtn").style.display = "inline-block";
+    document.getElementById("nextBtn").style.display = "inline-block";
+  }
+
+  function nextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex >= shuffledQuestions.length) {
+      if (repeatList.length > 0) {
+        shuffledQuestions = repeatList.sort(() => Math.random() - 0.5);
+        repeatList = [];
+        currentQuestionIndex = 0;
+      } else {
+        alert("🎉 Quiz Complete!");
+        return;
+      }
+    }
+    loadQuestion();
+  }
+
+  function arraysEqual(a, b) {
+    return a.length === b.length && a.every((val, i) => val === b[i]);
+  }
+
+  function copyQuestion() {
+    const questionObj = shuffledQuestions[currentQuestionIndex];
+    const text = `Q: ${questionObj.question}\n` +
+                 questionObj.options.map((opt, i) => `${i + 1}. ${opt}`).join("\n");
+    navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+  }
+
+  function showMistakes() {
+    document.getElementById("quizPage").style.display = "none";
+    document.getElementById("mistakesPage").style.display = "block";
+
+    const list = document.getElementById("mistakeList");
+    list.innerHTML = "";
+
+    mistakeQuestions.forEach((q, index) => {
+      const qDiv = document.createElement("div");
+      qDiv.style.marginBottom = "20px";
+
+      const qText = document.createElement("div");
+      qText.innerHTML = `<strong>Q${index + 1}:</strong> ${q.question}`;
+      qDiv.appendChild(qText);
+
+      const ul = document.createElement("ul");
+      q.options.forEach((opt, idx) => {
+        const li = document.createElement("li");
+        li.innerHTML = q.answer.includes(idx) ? `<strong>${opt}</strong>` : opt;
+        ul.appendChild(li);
+      });
+
+      qDiv.appendChild(ul);
+      list.appendChild(qDiv);
+    });
+  }
+
+  function goBackToQuiz() {
+    document.getElementById("mistakesPage").style.display = "none";
+    document.getElementById("quizPage").style.display = "block";
+  }
+
+  // Load questions from JSON
+  fetch('questions.json')
+    .then(res => res.json())
+    .then(data => {
+      questions = data;
+      shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+      document.getElementById("total").innerText = questions.length;
+      loadQuestion();
+    })
+    .catch(err => {
+      alert("Failed to load questions.");
+      console.error(err);
+    });
+</script>
+
+</body>
+</html>

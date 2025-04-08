@@ -1,0 +1,28 @@
+[
+    {
+      "question": "Which of the following are JavaScript frameworks?",
+      "options": ["React", "Laravel", "Angular", "Django"],
+      "answer": [0, 2]
+    },
+    {
+      "question": "What is the capital of France?",
+      "options": ["Berlin", "London", "Paris", "Madrid"],
+      "answer": [2]
+    },
+    {
+      "question": "Select all fruits:",
+      "options": ["Apple", "Car", "Banana", "Bus", "Grapes"],
+      "answer": [0, 2, 4]
+    },
+    {
+      "question": "HTML stands for?",
+      "options": [
+        "Hyper Text Markup Language",
+        "Home Tool Markup Language",
+        "Hyperlinks and Text Markup Language",
+        "HighText Machine Language"
+      ],
+      "answer": [0]
+    }
+  ]
+  
